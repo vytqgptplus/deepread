@@ -1,0 +1,78 @@
+services:
+  # PostgreSQL Database with pgvector
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: deepread-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: deepread
+      POSTGRES_PASSWORD: deepread_secret
+      POSTGRES_DB: deepread
+    ports:
+      - "9432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deepread -d deepread"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: postgres -c shared_preload_libraries=vector -c 'vector.enabled=on'
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: deepread-redis
+    restart: unless-stopped
+    ports:
+      - "9439:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: deepread-minio
+    restart: unless-stopped
+    ports:
+      - "9440:9000"   # API
+      - "9441:9001"   # Console
+    environment:
+      MINIO_ROOT_USER: deepread
+      MINIO_ROOT_PASSWORD: deepread_secret_123
+      MINIO_DEFAULT_BUCKETS: deepread-books
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: server /data --console-address ":9001"
+
+  # Create MinIO buckets
+  createbuckets:
+    image: minio/mc:latest
+    container_name: deepread-mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set myminio http://minio:9000 deepread deepread_secret_123;
+      mc mb myminio/deepread-books --ignore-existing;
+      mc anonymous set public myminio/deepread-books;
+      exit 0;
+      "
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
