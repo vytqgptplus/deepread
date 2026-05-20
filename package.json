@@ -21,7 +21,8 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:generate": "pnpm typeorm migration:generate -d src/database/data-source.ts",
     "migration:run": "pnpm typeorm migration:run -d src/database/data-source.ts",
-    "migration:revert": "pnpm typeorm migration:revert -d src/database/data-source.ts"
+    "migration:revert": "pnpm typeorm migration:revert -d src/database/data-source.ts",
+    "reindex": "ts-node scripts/reindex-all.ts"
   },
   "dependencies": {
     "@llamaindex/huggingface": "^0.1.33",
