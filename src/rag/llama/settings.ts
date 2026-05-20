@@ -2,8 +2,8 @@
  * LlamaIndex Settings
  * 
  * Setup global settings for:
- * - Embedding model (HuggingFace local)
- * - Node parser (SentenceSplitter for semantic chunking)
+ * - Embedding model (HuggingFace local, multilingual)
+ * - Node parser (SentenceSplitter with larger chunks)
  */
 
 import { Settings } from 'llamaindex';
@@ -15,15 +15,16 @@ import { SentenceSplitter } from 'llamaindex';
  * Call this once during module initialization.
  */
 export function initializeLlamaIndex(): void {
-  // Configure embedding model - HuggingFace local (free, privacy-preserving)
+  // Configure embedding model - multilingual model for Vietnamese support
   Settings.embedModel = new HuggingFaceEmbedding({
-    modelType: 'Xenova/all-MiniLM-L6-v2',
+    modelType: 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
   });
 
-  // Configure node parser - semantic chunking
+  // Configure node parser - semantic chunking with larger chunks
+  // Each chunk has enough context for semantic search
   Settings.nodeParser = new SentenceSplitter({
-    chunkSize: 512,     // tokens (~2000 chars)
-    chunkOverlap: 128, // tokens (~500 chars)
+    chunkSize: 512,      // tokens (~2000 chars)
+    chunkOverlap: 128,   // tokens (~500 chars)
   });
 
   Settings.chunkSize = 512;

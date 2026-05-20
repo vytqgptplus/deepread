@@ -26,6 +26,10 @@ export interface SourceNode {
   chapter?: string;
   content: string;
   score: number;
+  metadata?: {
+    retrievalSource?: 'vector' | 'keyword' | 'hybrid';
+    keywordScore?: number;
+  };
 }
 
 export interface PGConfig {

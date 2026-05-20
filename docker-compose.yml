@@ -17,7 +17,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    command: postgres -c shared_preload_libraries=vector -c 'vector.enabled=on'
+    command: postgres -c shared_preload_libraries=vector -c 'vector.enabled=on' -c 'vector.hnsw=on' -c 'vector.hnsw_m=16' -c 'vector.hnsw_ef_construction=64' -c 'vector.hnsw_ef_search=40'
 
   # Redis Cache
   redis:
