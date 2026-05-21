@@ -24,6 +24,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Document } from 'llamaindex';
 import { Book } from '../books/entities/book.entity';
+import { BookChunk } from './entities/book-chunk.entity';
 import { IndexBuilder, QueryEngine, createDocumentsFromChapters } from './llama';
 import { initializeLlamaIndex } from './llama/settings';
 import { HybridRetriever } from './llama/hybrid-retriever';
@@ -32,6 +33,7 @@ import { CrossEncoderReranker, RerankResult } from './llama/reranker';
 import { QueryRouter, QueryType } from './llama/query-router';
 import { FileParserService } from '../books/services/file-parser.service';
 import { NodeWithScore } from 'llamaindex';
+import * as crypto from 'crypto';
 
 // Initialize LlamaIndex settings at module load time
 initializeLlamaIndex();
@@ -81,6 +83,8 @@ export class RagService implements OnModuleInit {
   constructor(
     @InjectRepository(Book)
     private readonly bookRepository: Repository<Book>,
+    @InjectRepository(BookChunk)
+    private readonly bookChunkRepository: Repository<BookChunk>,
     private readonly configService: ConfigService,
     private readonly fileParserService: FileParserService,
   ) {
@@ -154,6 +158,10 @@ export class RagService implements OnModuleInit {
     const chapters = this.fileParserService.extractChapters(content);
     this.logger.log(`Extracted ${chapters.length} chapters`);
 
+    // Save chunks to database FIRST (before vector indexing)
+    const savedChunks = await this.saveChunksToDatabase(bookId, book.title || 'Unknown', chapters);
+    this.logger.log(`Saved ${savedChunks.length} chunks to database`);
+
     // Create LlamaIndex Documents from chapters
     const documents = createDocumentsFromChapters(
       bookId,
@@ -176,6 +184,38 @@ export class RagService implements OnModuleInit {
     this.logger.log(`Book processed: ${chunksIndexed} chunks indexed for ${bookId}`);
 
     return { chunksIndexed };
+  }
+
+  /**
+   * Save chunks to database for Follow Reading navigation.
+   */
+  private async saveChunksToDatabase(
+    bookId: string,
+    bookTitle: string,
+    chapters: Array<{
+      chapter: string;
+      content: string;
+      startOffset: number;
+      endOffset: number;
+    }>,
+  ): Promise<BookChunk[]> {
+    const chunks: Partial<BookChunk>[] = chapters.map((ch, index) => ({
+      bookId,
+      chunkIndex: index,
+      chapter: ch.chapter,
+      content: ch.content,
+      contentHash: crypto.createHash('md5').update(ch.content).digest('hex'),
+      metadata: {
+        bookTitle,
+        startOffset: ch.startOffset,
+        endOffset: ch.endOffset,
+      },
+    }));
+
+    // Use upsert to handle re-processing
+    const savedChunks = await this.bookChunkRepository.save(chunks);
+    this.logger.log(`Saved ${savedChunks.length} chunks to book_chunks table`);
+    return savedChunks as BookChunk[];
   }
 
   /**
@@ -359,12 +399,15 @@ export class RagService implements OnModuleInit {
     // Get book titles
     const bookTitles = await this.getBookTitles(sources.map(s => s.bookId));
 
-    // Build citations
+    // Build citations with position metadata for Follow Reading
     const citations: Citation[] = sources.map(s => ({
       bookId: s.bookId,
-      chunkId: '',
+      chunkId: s.chunkId,
       bookTitle: s.bookTitle || bookTitles.get(s.bookId) || 'Unknown',
       chapter: s.chapter,
+      page: s.page,
+      startOffset: s.startOffset,
+      endOffset: s.endOffset,
       excerpt: s.content.substring(0, 200),
       relevanceScore: s.score,
     }));
@@ -408,20 +451,27 @@ export class RagService implements OnModuleInit {
   }
 
   /**
-   * Format retrieved nodes to SourceNode array.
+   * Format retrieved nodes to SourceNode array with position metadata for Follow Reading.
    */
   private formatSources(nodes: NodeWithScore[]): SourceNode[] {
-    return nodes.map((node, index) => ({
-      bookId: node.node?.metadata?.bookId || '',
-      bookTitle: node.node?.metadata?.bookTitle || '',
-      chapter: node.node?.metadata?.chapter || '',
-      content: (node.node as any)?.textContent || (node.node as any)?.text || '',
-      score: node.score || 0,
-      metadata: {
-        retrievalSources: (node as any).metadata?.retrievalSources || [],
-        rank: index + 1,
-      },
-    }));
+    return nodes.map((node, index) => {
+      const metadata = node.node?.metadata || {};
+      return {
+        bookId: metadata.bookId || '',
+        chunkId: metadata.chunkId || (node.node as any)?.id_ || '',
+        bookTitle: metadata.bookTitle || '',
+        chapter: metadata.chapter || '',
+        page: metadata.pageNumber || metadata.page,
+        startOffset: metadata.startOffset,
+        endOffset: metadata.endOffset,
+        content: (node.node as any)?.textContent || (node.node as any)?.text || '',
+        score: node.score || 0,
+        metadata: {
+          retrievalSources: metadata.retrievalSources || [],
+          rank: index + 1,
+        },
+      };
+    });
   }
 
   /**
@@ -522,12 +572,13 @@ ${retrievalResult.context.citationString}`;
   }
 
   /**
-   * Delete book index.
+   * Delete book index and chunks from database.
    */
   async deleteBook(bookId: string): Promise<void> {
     await this.initialize();
 
     try {
+      // Delete from vector index
       const index = await this.indexBuilder.loadIndex();
       await this.indexBuilder.deleteByBookId(index, bookId);
       
@@ -536,10 +587,34 @@ ${retrievalResult.context.citationString}`;
         doc => doc.metadata?.bookId !== bookId
       );
       
-      this.logger.log(`Deleted index for book: ${bookId}`);
+      // Delete chunks from database
+      await this.bookChunkRepository.delete({ bookId });
+      
+      this.logger.log(`Deleted index and chunks for book: ${bookId}`);
     } catch (error: any) {
       this.logger.warn(`Failed to delete index for book ${bookId}: ${error.message}`);
     }
+  }
+
+  /**
+   * Get chunks for a book from database.
+   * Used for Follow Reading navigation.
+   */
+  async getChunksByBookId(bookId: string): Promise<BookChunk[]> {
+    return this.bookChunkRepository.find({
+      where: { bookId },
+      order: { chunkIndex: 'ASC' },
+    });
+  }
+
+  /**
+   * Get a specific chunk by ID.
+   * Used for Follow Reading navigation.
+   */
+  async getChunkById(chunkId: string): Promise<BookChunk | null> {
+    return this.bookChunkRepository.findOne({
+      where: { id: chunkId },
+    });
   }
 
   /**
@@ -547,6 +622,14 @@ ${retrievalResult.context.citationString}`;
    */
   async hasIndex(bookId: string): Promise<boolean> {
     return this.indexedDocuments.some(doc => doc.metadata?.bookId === bookId);
+  }
+
+  /**
+   * Check if a book has chunks in database.
+   */
+  async hasChunks(bookId: string): Promise<boolean> {
+    const count = await this.bookChunkRepository.count({ where: { bookId } });
+    return count > 0;
   }
 
   /**
@@ -568,8 +651,12 @@ ${retrievalResult.context.citationString}`;
  */
 interface SourceNode {
   bookId: string;
+  chunkId: string;
   bookTitle: string;
   chapter?: string;
+  page?: number;
+  startOffset?: number;
+  endOffset?: number;
   content: string;
   score: number;
   metadata?: {
@@ -640,7 +727,7 @@ export interface RetrievalResult {
 }
 
 /**
- * Citation type for exports.
+ * Citation type with position metadata for Follow Reading navigation.
  */
 export interface Citation {
   bookId: string;
@@ -648,6 +735,8 @@ export interface Citation {
   bookTitle?: string;
   chapter?: string;
   page?: number;
+  startOffset?: number;
+  endOffset?: number;
   excerpt?: string;
   relevanceScore?: number;
 }

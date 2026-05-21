@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Book } from '../books/entities/book.entity';
+import { BookChunk } from './entities/book-chunk.entity';
+import { ChunkEmbedding } from './entities/chunk-embedding.entity';
 import { RagService } from './rag.service';
 import { FileParserService } from '../books/services/file-parser.service';
 
@@ -14,7 +16,7 @@ import { FileParserService } from '../books/services/file-parser.service';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Book]),
+    TypeOrmModule.forFeature([Book, BookChunk, ChunkEmbedding]),
   ],
   providers: [
     RagService,

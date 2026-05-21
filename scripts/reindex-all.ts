@@ -153,7 +153,7 @@ async function reindexAllBooks(): Promise<void> {
       console.log(`  Extracted ${chapters.length} chapters`);
 
       if (chapters.length === 0) {
-        chapters.push({ chapter: 'Full Content', content });
+        chapters.push({ chapter: 'Full Content', content, startOffset: 0, endOffset: content.length });
       }
 
       const documents = createDocumentsFromChapters(

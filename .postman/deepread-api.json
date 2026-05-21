@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "DeepRead API",
-    "description": "API documentation for DeepRead - AI-powered book reading platform with RAG support",
+    "description": "API documentation for DeepRead - AI-powered book reading platform with RAG support and Follow Reading feature",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -27,6 +27,10 @@
     },
     {
       "key": "bookId",
+      "value": ""
+    },
+    {
+      "key": "chunkId",
       "value": ""
     }
   ],
@@ -389,6 +393,158 @@
       ]
     },
     {
+      "name": "Follow Reading (Book Navigation)",
+      "item": [
+        {
+          "name": "Get Chapter List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has chapters array', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('chapters');",
+                  "    pm.expect(response.chapters).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/books/{{bookId}}/chapters",
+              "host": ["{{baseUrl}}"],
+              "path": ["books", "{{bookId}}", "chapters"]
+            }
+          }
+        },
+        {
+          "name": "Get Chunk by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('chunkId', response.chunkId);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has chunk data with position info', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('chunkId');",
+                  "    pm.expect(response).to.have.property('content');",
+                  "    pm.expect(response).to.have.property('chapter');",
+                  "    pm.expect(response).to.have.property('startOffset');",
+                  "    pm.expect(response).to.have.property('endOffset');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/books/{{bookId}}/chunks/{{chunkId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["books", "{{bookId}}", "chunks", "{{chunkId}}"]
+            }
+          }
+        },
+        {
+          "name": "Navigate to Position (by chunkId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has chunk and highlight info', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('chunk');",
+                  "    pm.expect(response).to.have.property('highlightStart');",
+                  "    pm.expect(response).to.have.property('highlightEnd');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/books/{{bookId}}/navigate?chunkId={{chunkId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["books", "{{bookId}}", "navigate"],
+              "query": [
+                {
+                  "key": "chunkId",
+                  "value": "{{chunkId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Navigate to Position (by page)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/books/{{bookId}}/navigate?page=1&offset=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["books", "{{bookId}}", "navigate"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "offset",
+                  "value": "100"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Conversations",
       "item": [
         {
@@ -567,7 +723,7 @@
       ]
     },
     {
-      "name": "Chats",
+      "name": "Chats (with RAG & Follow Reading)",
       "item": [
         {
           "name": "Chat - Without RAG (Default)",
@@ -600,7 +756,7 @@
           }
         },
         {
-          "name": "Chat - With RAG (Search Book Content)",
+          "name": "Chat - With RAG (Returns Citations with Position)",
           "request": {
             "method": "POST",
             "header": [
@@ -615,7 +771,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"content\": \"What is the main theme of chapter 5?\",\n    \"useRag\": true,\n    \"ragBookIds\": [\"{{bookId}}\"]\n}",
+              "raw": "{\n    \"content\": \"What is the main theme of the book?\",\n    \"useRag\": true,\n    \"ragBookIds\": [\"{{bookId}}\"]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -626,6 +782,48 @@
               "raw": "{{baseUrl}}/chats/{{conversationId}}/messages",
               "host": ["{{baseUrl}}"],
               "path": ["chats", "{{conversationId}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Stream Chat - With RAG (Citations + Text)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response is streaming (text/event-stream)', function () {",
+                  "    pm.expect(pm.response.headers.get('content-type')).to.include('text/event-stream');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"content\": \"What is the main theme?\",\n    \"useRag\": true,\n    \"ragBookIds\": [\"{{bookId}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chats/{{conversationId}}/stream",
+              "host": ["{{baseUrl}}"],
+              "path": ["chats", "{{conversationId}}", "stream"]
             }
           }
         },
@@ -646,36 +844,6 @@
             "body": {
               "mode": "raw",
               "raw": "{\n    \"content\": \"What is artificial intelligence?\",\n    \"useRag\": false\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/chats/{{conversationId}}/stream",
-              "host": ["{{baseUrl}}"],
-              "path": ["chats", "{{conversationId}}", "stream"]
-            }
-          }
-        },
-        {
-          "name": "Stream Chat - With RAG",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"content\": \"What is the main theme of chapter 5?\",\n    \"useRag\": true,\n    \"ragBookIds\": [\"{{bookId}}\"]\n}",
               "options": {
                 "raw": {
                   "language": "json"

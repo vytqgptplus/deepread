@@ -12,6 +12,17 @@ export interface Chapter {
   content: string;
 }
 
+export interface ChunkMetadata {
+  chunkId: string;
+  bookId: string;
+  bookTitle: string;
+  chapter: string;
+  chapterIndex: number;
+  pageNumber?: number;
+  startOffset: number;
+  endOffset: number;
+}
+
 /**
  * Create a single LlamaIndex Document from book content.
  */
@@ -26,6 +37,9 @@ export function createDocument(
     metadata: {
       bookId,
       bookTitle,
+      chunkId: `book-${bookId}`,
+      startOffset: 0,
+      endOffset: content.length,
       ...metadata,
     },
     id_: `book-${bookId}`,
@@ -34,25 +48,39 @@ export function createDocument(
 
 /**
  * Create multiple LlamaIndex Documents from chapters.
- * Each chapter becomes a separate Document.
+ * Each chapter becomes a separate Document with position metadata for Follow Reading.
  */
 export function createDocumentsFromChapters(
   bookId: string,
   bookTitle: string,
   chapters: Chapter[],
+  pageNumbers?: number[],
 ): Document[] {
-  return chapters.map((chapter, index) =>
-    new Document({
+  let globalOffset = 0;
+  
+  return chapters.map((chapter, index) => {
+    const startOffset = globalOffset;
+    const endOffset = startOffset + chapter.content.length;
+    const chunkId = `book-${bookId}-chunk-${index}`;
+    
+    const doc = new Document({
       text: chapter.content,
       metadata: {
         bookId,
         bookTitle,
         chapter: chapter.title,
         chapterIndex: index,
+        chunkId,
+        pageNumber: pageNumbers?.[index],
+        startOffset,
+        endOffset,
       },
-      id_: `book-${bookId}-chapter-${index}`,
-    }),
-  );
+      id_: chunkId,
+    });
+    
+    globalOffset = endOffset + 1;
+    return doc;
+  });
 }
 
 /**
@@ -69,6 +97,9 @@ export function createDocumentFromBook(
     metadata: {
       bookId,
       bookTitle,
+      chunkId: `book-${bookId}`,
+      startOffset: 0,
+      endOffset: content.length,
     },
     id_: `book-${bookId}`,
   });

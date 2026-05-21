@@ -18,6 +18,21 @@ export interface StreamResult {
 }
 
 /**
+ * Citation with position metadata for Follow Reading.
+ */
+export interface CitationWithPosition {
+  bookId: string;
+  chunkId: string;
+  bookTitle?: string;
+  chapter?: string;
+  page?: number;
+  startOffset?: number;
+  endOffset?: number;
+  excerpt?: string;
+  relevanceScore?: number;
+}
+
+/**
  * Chat service handling message CRUD and AI streaming.
  * Manages conversation history, OpenRouter API calls, and citation parsing.
  * Integrates with RagService for RAG-enabled responses.
@@ -168,7 +183,7 @@ export class ChatService {
 
   /**
    * Stream AI response from OpenRouter API.
-   * Supports RAG-enabled streaming.
+   * Supports RAG-enabled streaming with rich citation metadata for Follow Reading.
    */
   async streamAIResponse(
     conversationId: string,
@@ -190,7 +205,7 @@ export class ChatService {
 
     // Build messages array
     let messages: Array<{ role: string; content: string }>;
-    let ragCitations: Citation[] = [];
+    let ragCitations: CitationWithPosition[] = [];
     let useRag = false;
 
     if (createDto.useRag && createDto.ragBookIds?.length) {
@@ -210,7 +225,19 @@ export class ChatService {
         { role: 'user', content: userPrompt },
       ];
 
-      ragCitations = citations as Citation[];
+      // Store citations with position metadata for Follow Reading
+      ragCitations = citations.map(c => ({
+        bookId: c.bookId,
+        chunkId: c.chunkId,
+        bookTitle: c.bookTitle,
+        chapter: c.chapter,
+        page: c.page,
+        startOffset: c.startOffset,
+        endOffset: c.endOffset,
+        excerpt: c.excerpt,
+        relevanceScore: c.relevanceScore,
+      }));
+
       this.logger.log(`RAG stream for conversation ${conversationId}, ${retrievalResult.context.chunksUsed} chunks used`);
     } else {
       // Regular chat
@@ -224,8 +251,16 @@ export class ChatService {
     // Create readable stream
     const { readable, controller } = this.createReadableStream();
 
+    // Send citations metadata first (as a special event)
+    if (useRag && ragCitations.length > 0) {
+      controller.push(JSON.stringify({
+        type: 'citations',
+        data: ragCitations,
+      }) + '\n');
+    }
+
     // Make streaming request
-    this.callOpenRouterStream(messages, controller, conversationId, useRag, ragCitations).catch((error) => {
+    this.callOpenRouterStream(messages, controller, conversationId).catch((error) => {
       this.logger.error(`Stream error: ${error}`);
       controller.error(error instanceof Error ? error : new Error(String(error)));
     });
@@ -307,8 +342,6 @@ export class ChatService {
     messages: Array<{ role: string; content: string }>,
     controller: StreamController,
     conversationId: string,
-    useRag = false,
-    ragCitations: Citation[] = [],
   ): Promise<void> {
     const config: AxiosRequestConfig = {
       headers: {

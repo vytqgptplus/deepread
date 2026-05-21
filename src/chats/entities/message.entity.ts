@@ -9,14 +9,19 @@ import {
 import { Conversation } from '../../conversations/entities/conversation.entity';
 
 /**
- * Citation format returned by AI when referencing book content.
+ * Citation format with position metadata for Follow Reading.
+ * AI includes these when referencing book content.
  */
 export interface Citation {
   bookId?: string;
+  chunkId?: string;
   bookTitle?: string;
   page?: number;
   chapter?: string;
+  startOffset?: number;
+  endOffset?: number;
   excerpt?: string;
+  relevanceScore?: number;
 }
 
 /**

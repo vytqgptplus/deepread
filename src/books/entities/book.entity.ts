@@ -51,6 +51,9 @@ export class Book {
   @Column({ type: 'text', nullable: true })
   content: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  chapters: ChapterInfo[];
+
   @Column({
     type: 'enum',
     enum: ['pdf', 'epub', 'txt'],
@@ -81,4 +84,15 @@ export class Book {
   // Many-to-many relationship with conversations
   @ManyToMany(() => Conversation, (conversation) => conversation.books)
   conversations: Conversation[];
+}
+
+/**
+ * Chapter information for book navigation.
+ */
+export interface ChapterInfo {
+  title: string;
+  index: number;
+  startOffset: number;
+  endOffset: number;
+  pageNumber?: number;
 }

@@ -203,4 +203,60 @@ export class BooksController {
   ) {
     return this.booksService.getProcessingStatus(id, user.id);
   }
+
+  /**
+   * Get chapter list for a book.
+   * Used for Follow Reading navigation.
+   */
+  @Get(':id/chapters')
+  @ApiOperation({ summary: 'Get chapter list for Follow Reading' })
+  @ApiResponse({ status: 200, description: 'List of chapters' })
+  @ApiResponse({ status: 404, description: 'Book not found' })
+  async getChapters(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    this.logger.log(`Getting chapters for book: ${id}`);
+    return this.booksService.getChapterList(id, user.id);
+  }
+
+  /**
+   * Get specific chunk by ID.
+   * Used for Follow Reading navigation when clicking citations.
+   */
+  @Get(':id/chunks/:chunkId')
+  @ApiOperation({ summary: 'Get chunk by ID for Follow Reading' })
+  @ApiResponse({ status: 200, description: 'Chunk details' })
+  @ApiResponse({ status: 404, description: 'Book or chunk not found' })
+  async getChunk(
+    @Param('id') id: string,
+    @Param('chunkId') chunkId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    this.logger.log(`Getting chunk ${chunkId} for book: ${id}`);
+    return this.booksService.getChunk(id, chunkId, user.id);
+  }
+
+  /**
+   * Navigate to a position in the book.
+   * Returns chunk info with highlight range for frontend.
+   */
+  @Get(':id/navigate')
+  @ApiOperation({ summary: 'Navigate to position in book for Follow Reading' })
+  @ApiResponse({ status: 200, description: 'Navigation info with highlight' })
+  @ApiResponse({ status: 404, description: 'Book not found' })
+  async navigateToPosition(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+    @Query('chunkId') chunkId?: string,
+    @Query('page') page?: string,
+    @Query('offset') offset?: string,
+  ) {
+    this.logger.log(`Navigating to position in book: ${id}`);
+    return this.booksService.navigateToPosition(id, user.id, {
+      chunkId,
+      page: page ? parseInt(page, 10) : undefined,
+      offset: offset ? parseInt(offset, 10) : undefined,
+    });
+  }
 }

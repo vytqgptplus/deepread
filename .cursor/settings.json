@@ -1,0 +1,64 @@
+{
+  "plugins": {
+    "vercel": {
+      "enabled": true
+    },
+    "convex": {
+      "enabled": true
+    },
+    "workos": {
+      "enabled": true
+    },
+    "cockroachdb": {
+      "enabled": true
+    },
+    "encore": {
+      "enabled": true
+    },
+    "mongodb": {
+      "enabled": true
+    },
+    "supabase": {
+      "enabled": true
+    },
+    "huggingface-skills": {
+      "enabled": true
+    },
+    "postman": {
+      "enabled": true
+    },
+    "sourcegraph-cursor-plugin": {
+      "enabled": true
+    },
+    "compound-engineering": {
+      "enabled": true
+    },
+    "docs-canvas": {
+      "enabled": true
+    },
+    "modern-web-guidance": {
+      "enabled": true
+    },
+    "orchestrate": {
+      "enabled": true
+    },
+    "cursor-sdk": {
+      "enabled": true
+    },
+    "agent-compatibility": {
+      "enabled": true
+    },
+    "tavily": {
+      "enabled": true
+    },
+    "snyk-secure-development": {
+      "enabled": true
+    },
+    "continual-learning": {
+      "enabled": true
+    },
+    "cursor-team-kit": {
+      "enabled": true
+    }
+  }
+}

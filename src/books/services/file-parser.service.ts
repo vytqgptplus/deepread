@@ -155,29 +155,49 @@ export class FileParserService {
   }
 
   /**
-   * Extract chapters from text.
+   * Extract chapters from text with position metadata.
+   * Used for Follow Reading navigation.
    */
-  extractChapters(text: string): Array<{ chapter: string; content: string }> {
-    const chapters: Array<{ chapter: string; content: string }> = [];
+  extractChapters(text: string): Array<{
+    chapter: string;
+    content: string;
+    startOffset: number;
+    endOffset: number;
+  }> {
+    const chapters: Array<{
+      chapter: string;
+      content: string;
+      startOffset: number;
+      endOffset: number;
+    }> = [];
 
     // Pattern to detect chapter headings
     const chapterPattern = /(?:^|\n)(Chapter|CHAPTER|Part|PART)\s+(\d+|[IVXLCDM]+)[.:]\s*(.+)/gi;
     const lines = text.split('\n');
 
-    let currentChapter = { name: 'Introduction', content: '' };
+    let currentChapter = { name: 'Introduction', content: '', startOffset: 0 };
 
     for (const line of lines) {
+      const lineOffset = text.indexOf(line, currentChapter.startOffset + currentChapter.content.length);
       const match = chapterPattern.exec(line);
+
       if (match) {
+        // Save previous chapter
+        const endOffset = lineOffset > 0 ? lineOffset : currentChapter.startOffset + currentChapter.content.length;
         if (currentChapter.content.length > 0) {
           chapters.push({
             chapter: currentChapter.name,
             content: currentChapter.content.trim(),
+            startOffset: currentChapter.startOffset,
+            endOffset,
           });
         }
+
+        // Start new chapter
         currentChapter = {
           name: `${match[1]} ${match[2]}: ${match[3]}`.substring(0, 100),
           content: '',
+          startOffset: lineOffset > 0 ? lineOffset : endOffset,
         };
       } else {
         currentChapter.content += '\n' + line;
@@ -189,6 +209,8 @@ export class FileParserService {
       chapters.push({
         chapter: currentChapter.name,
         content: currentChapter.content.trim(),
+        startOffset: currentChapter.startOffset,
+        endOffset: text.length,
       });
     }
 
@@ -197,6 +219,8 @@ export class FileParserService {
       chapters.push({
         chapter: 'Full Text',
         content: text.trim(),
+        startOffset: 0,
+        endOffset: text.length,
       });
     }
 
