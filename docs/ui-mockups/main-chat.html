@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepRead - AI Book Reading Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #212121;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #323232;
+            --bg-hover: #3d3d3d;
+            --text-primary: #ececf1;
+            --text-secondary: #8b8b8e;
+            --text-muted: #6e6e73;
+            --accent: #10a37f;
+            --accent-hover: #0d8a6a;
+            --border: #3d3d3d;
+            --danger: #ef4141;
+            --warning: #f7c02e;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: #171717;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent), #34d399);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .new-chat-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px 16px;
+            margin-top: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .sidebar-section {
+            padding: 16px;
+        }
+
+        .sidebar-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .book-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .book-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .book-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .book-item.active {
+            background: var(--bg-secondary);
+        }
+
+        .book-cover {
+            width: 36px;
+            height: 48px;
+            border-radius: 4px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #4a5568, #2d3748);
+        }
+
+        .book-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .book-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .book-author {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .user-menu:hover {
+            background: var(--bg-hover);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 0 24px;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .chat-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Chat Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 0;
+        }
+
+        .message {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .message-avatar.user {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .message-avatar.assistant {
+            background: linear-gradient(135deg, var(--accent), #34d399);
+            font-size: 16px;
+        }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .message-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .message-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        .message-text p {
+            margin-bottom: 12px;
+        }
+
+        .message-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .citation {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(16, 163, 127, 0.15);
+            color: var(--accent);
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .citation:hover {
+            background: rgba(16, 163, 127, 0.25);
+        }
+
+        .book-citation {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .book-citation-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .book-citation-book {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .book-citation-page {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 2px 6px;
+            background: var(--bg-hover);
+            border-radius: 4px;
+        }
+
+        .book-citation-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* Input Area */
+        .chat-input-area {
+            padding: 24px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input-wrapper:focus-within {
+            border-color: var(--accent);
+        }
+
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            resize: none;
+            max-height: 200px;
+            line-height: 1.5;
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .chat-actions-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+            margin-top: 8px;
+        }
+
+        .input-action {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .input-action:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .send-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+
+        .send-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .send-btn:disabled {
+            background: var(--bg-tertiary);
+            cursor: not-allowed;
+        }
+
+        /* Book Selection Panel */
+        .book-selection {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .selected-books {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .selected-book-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .selected-book-tag .remove {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-hover);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .selected-book-tag .remove:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            text-align: center;
+            padding: 48px;
+        }
+
+        .welcome-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--accent), #34d399);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin-bottom: 24px;
+        }
+
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 500px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        .suggestions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            max-width: 600px;
+        }
+
+        .suggestion {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .suggestion:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+
+        .suggestion-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .suggestion-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Features Bar */
+        .features-bar {
+            display: flex;
+            gap: 24px;
+            padding: 16px 0;
+            margin-top: 32px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .feature-icon {
+            font-size: 16px;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 0;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-8px);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">D</div>
+                    DeepRead
+                </div>
+                <button class="new-chat-btn">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Cuộc trò chuyện mới
+                </button>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Sách của tôi</div>
+                <div class="book-list">
+                    <div class="book-item active">
+                        <img class="book-cover" src="https://picsum.photos/seed/book1/72/96" alt="Book cover">
+                        <div class="book-info">
+                            <div class="book-title">Đắc Nhân Tâm</div>
+                            <div class="book-author">Dale Carnegie</div>
+                        </div>
+                    </div>
+                    <div class="book-item">
+                        <img class="book-cover" src="https://picsum.photos/seed/book2/72/96" alt="Book cover">
+                        <div class="book-info">
+                            <div class="book-title">Nhà Giả Kim</div>
+                            <div class="book-author">Paulo Coelho</div>
+                        </div>
+                    </div>
+                    <div class="book-item">
+                        <img class="book-cover" src="https://picsum.photos/seed/book3/72/96" alt="Book cover">
+                        <div class="book-info">
+                            <div class="book-title">Sapiens</div>
+                            <div class="book-author">Yuval Noah Harari</div>
+                        </div>
+                    </div>
+                    <div class="book-item">
+                        <img class="book-cover" src="https://picsum.photos/seed/book4/72/96" alt="Book cover">
+                        <div class="book-info">
+                            <div class="book-title">Atomic Habits</div>
+                            <div class="book-author">James Clear</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-menu">
+                    <div class="user-avatar">N</div>
+                    <span class="user-name">Nguyen Van A</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="chat-header">
+                <h1 class="chat-title">Đắc Nhân Tâm - Dale Carnegie</h1>
+                <div class="chat-actions">
+                    <button class="btn btn-ghost">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                        Lịch sử
+                    </button>
+                    <button class="btn btn-primary">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        Follow Reading
+                    </button>
+                </div>
+            </div>
+
+            <div class="book-selection">
+                <span style="font-size: 13px; color: var(--text-muted);">Đang đọc:</span>
+                <div class="selected-books">
+                    <div class="selected-book-tag">
+                        Đắc Nhân Tâm
+                        <span class="remove">×</span>
+                    </div>
+                    <div class="selected-book-tag">
+                        Nhà Giả Kim
+                        <span class="remove">×</span>
+                    </div>
+                </div>
+                <button class="btn btn-ghost" style="margin-left: auto;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 6v12m6-6H6"/>
+                    </svg>
+                    Thêm sách
+                </button>
+            </div>
+
+            <div class="chat-messages">
+                <div class="message">
+                    <div class="message-avatar user">N</div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-name">Bạn</span>
+                            <span class="message-time">2 phút trước</span>
+                        </div>
+                        <div class="message-text">
+                            <p>Chương về cách kết bạn trong cuốn "Đắc Nhân Tâm" nói gì về việc nhớ tên người khác? Tại sao điều này quan trọng?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="message">
+                    <div class="message-avatar assistant">AI</div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-name">DeepRead AI</span>
+                            <span class="message-time">1 phút trước</span>
+                        </div>
+                        <div class="message-text">
+                            <p>Cuốn "Đắc Nhân Tâm" của Dale Carnegie có một chương riêng về việc trở thành người thú vị và cách kết bạn. Trong đó, ông nhấn mạnh tầm quan trọng của việc nhớ và sử dụng tên người khác.</p>
+
+                            <p>Theo Carnegie, <strong>tên gọi là yếu tố quan trọng nhất</strong> đối với bất kỳ ai trong giao tiếp. Ông viết rằng mọi người đều yêu thích âm thanh của tên riêng mình - đó là âm thanh êm dịu và dễ chịu nhất trong bất kỳ ngôn ngữ nào.</p>
+
+                            <p><span class="citation">📖 Chương 7, Trang 89</span></p>
+
+                            <div class="book-citation">
+                                <div class="book-citation-header">
+                                    <span class="book-citation-book">Đắc Nhân Tâm</span>
+                                    <span class="book-citation-page">Trang 89-90</span>
+                                </div>
+                                <p class="book-citation-text">"Hãy nhớ rằng tên gọi, với hầu hết mọi người, là âm thanh quan trọng nhất của bất kỳ ngôn ngữ nào. Nhớ tên người khác là sự thể hiện lịch sự và tôn trọng đơn giản nhất mà bạn có thể dành cho họ."</p>
+                            </div>
+
+                            <p style="margin-top: 16px;"><strong>Tại sao điều này quan trọng?</strong></p>
+                            <p>1. <strong>Tạo cảm giác được quan tâm</strong> - Khi ai đó nhớ tên bạn, bạn cảm thấy quan trọng và được coi trọng.</p>
+                            <p>2. <strong>Xây dựng niềm tin</strong> - Việc sử dụng đúng tên cho thấy bạn thực sự chú ý đến họ.</p>
+                            <p>3. <strong>Tăng khả năng ghi nhớ</strong> - Não bộ của bạn sẽ ghi nhớ thông tin tốt hơn khi liên kết với tên.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <div class="chat-input-wrapper">
+                    <textarea class="chat-input" placeholder="Đặt câu hỏi về nội dung sách..." rows="1"></textarea>
+                    <button class="send-btn">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="chat-actions-bar">
+                    <button class="input-action">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        Tải lên sách
+                    </button>
+                    <button class="input-action">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                        Chọn sách
+                    </button>
+                    <button class="input-action">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                        </svg>
+                        Chế độ Audio
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

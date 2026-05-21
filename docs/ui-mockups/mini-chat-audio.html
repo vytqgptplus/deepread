@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepRead - Mini Chat & Audio Mode</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #212121;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #323232;
+            --bg-hover: #3d3d3d;
+            --bg-book: #faf9f7;
+            --text-primary: #ececf1;
+            --text-secondary: #8b8b8e;
+            --text-muted: #6e6e73;
+            --text-book: #2c2c2c;
+            --accent: #10a37f;
+            --accent-hover: #0d8a6a;
+            --accent-light: rgba(16, 163, 127, 0.15);
+            --warning: #f7c02e;
+            --purple: #8b5cf6;
+            --border: #3d3d3d;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-book);
+            color: var(--text-book);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent), #34d399);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+        }
+
+        .book-list {
+            padding: 16px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .book-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: background 0.2s;
+        }
+
+        .book-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .book-item.active {
+            background: var(--bg-secondary);
+        }
+
+        .book-cover-mini {
+            width: 32px;
+            height: 44px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .book-item-info {
+            flex: 1;
+        }
+
+        .book-item-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .book-item-author {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Book Reader */
+        .book-reader {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .reader-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .reader-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .reader-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .reader-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--text-book-light);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reader-btn:hover {
+            background: #e5e5e5;
+            color: var(--text-book);
+        }
+
+        .reader-btn.primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .reader-btn.primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .reader-btn.purple {
+            background: var(--purple);
+            color: white;
+        }
+
+        .reader-btn.purple:hover {
+            background: #7c3aed;
+        }
+
+        .book-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+        }
+
+        .book-page {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        .book-chapter {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .book-page-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            line-height: 1.3;
+        }
+
+        .book-page-content {
+            font-size: 16px;
+            line-height: 1.8;
+            text-align: justify;
+        }
+
+        .book-page-content p {
+            margin-bottom: 16px;
+            text-indent: 2em;
+        }
+
+        .selectable-text {
+            cursor: text;
+            padding: 2px 0;
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+
+        .selectable-text:hover {
+            background: rgba(16, 163, 127, 0.1);
+        }
+
+        .selectable-text::selection {
+            background: rgba(16, 163, 127, 0.3);
+        }
+
+        .selected-highlight {
+            background: rgba(139, 92, 246, 0.2);
+            border-bottom: 2px solid var(--purple);
+        }
+
+        /* Mini Chat Popup */
+        .mini-chat-popup {
+            position: fixed;
+            bottom: 100px;
+            right: 32px;
+            width: 380px;
+            background: var(--bg-primary);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            overflow: hidden;
+            z-index: 1000;
+            display: none;
+        }
+
+        .mini-chat-popup.visible {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .mini-chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mini-chat-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mini-chat-icon {
+            width: 28px;
+            height: 28px;
+            background: var(--purple);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .mini-chat-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .mini-chat-close {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .mini-chat-close:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .mini-chat-quote {
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .mini-chat-messages {
+            height: 280px;
+            overflow-y: auto;
+            padding: 16px 20px;
+        }
+
+        .mini-message {
+            margin-bottom: 16px;
+        }
+
+        .mini-message.user .mini-message-bubble {
+            background: var(--bg-secondary);
+            border-radius: 12px 12px 4px 12px;
+            padding: 10px 14px;
+        }
+
+        .mini-message.assistant .mini-message-bubble {
+            background: transparent;
+            padding: 0;
+        }
+
+        .mini-message-text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .mini-chat-input-area {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .mini-chat-input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mini-chat-input {
+            flex: 1;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .mini-chat-input:focus {
+            border-color: var(--purple);
+        }
+
+        .mini-send-btn {
+            width: 40px;
+            height: 40px;
+            background: var(--purple);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Audio Player Panel */
+        .audio-player-panel {
+            position: fixed;
+            bottom: 0;
+            left: 240px;
+            right: 0;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            z-index: 100;
+        }
+
+        .audio-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 250px;
+        }
+
+        .audio-book-cover {
+            width: 56px;
+            height: 72px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        .audio-book-info {
+            flex: 1;
+        }
+
+        .audio-book-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .audio-book-chapter {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .audio-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 50%;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .audio-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .audio-btn.play {
+            width: 48px;
+            height: 48px;
+            background: var(--accent);
+            color: white;
+        }
+
+        .audio-btn.play:hover {
+            background: var(--accent-hover);
+            color: white;
+        }
+
+        .audio-progress {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .audio-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            min-width: 45px;
+        }
+
+        .audio-progress-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .audio-progress-fill {
+            height: 100%;
+            width: 35%;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        .audio-volume {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .volume-slider {
+            width: 80px;
+            height: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .volume-fill {
+            height: 100%;
+            width: 70%;
+            background: var(--text-secondary);
+            border-radius: 2px;
+        }
+
+        /* Audio Mode Selector */
+        .audio-mode-selector {
+            display: flex;
+            gap: 8px;
+        }
+
+        .audio-mode-btn {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .audio-mode-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .audio-mode-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Selection Tooltip */
+        .selection-tooltip {
+            position: fixed;
+            display: none;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 1001;
+        }
+
+        .selection-tooltip.visible {
+            display: flex;
+            gap: 4px;
+        }
+
+        .tooltip-action {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tooltip-action:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .tooltip-action.purple {
+            background: var(--purple);
+            color: white;
+        }
+
+        .tooltip-action.purple:hover {
+            background: #7c3aed;
+        }
+
+        /* Speed Control */
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .speed-btn {
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .speed-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">D</div>
+                    DeepRead
+                </div>
+            </div>
+
+            <div class="book-list">
+                <div class="book-item active">
+                    <img class="book-cover-mini" src="https://picsum.photos/seed/book1/64/88" alt="Book">
+                    <div class="book-item-info">
+                        <div class="book-item-title">Đắc Nhân Tâm</div>
+                        <div class="book-item-author">Dale Carnegie</div>
+                    </div>
+                </div>
+                <div class="book-item">
+                    <img class="book-cover-mini" src="https://picsum.photos/seed/book2/64/88" alt="Book">
+                    <div class="book-item-info">
+                        <div class="book-item-title">Nhà Giả Kim</div>
+                        <div class="book-item-author">Paulo Coelho</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="book-reader">
+                <div class="reader-header">
+                    <span class="reader-title">Đắc Nhân Tâm - Chương 7</span>
+                    <div class="reader-actions">
+                        <button class="reader-btn">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Follow Reading
+                        </button>
+                        <button class="reader-btn purple">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                            </svg>
+                            Mini Chat
+                        </button>
+                        <button class="reader-btn primary">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                            </svg>
+                            Audio Mode
+                        </button>
+                    </div>
+                </div>
+
+                <div class="book-content">
+                    <div class="book-page">
+                        <div class="book-chapter">Chương 7</div>
+                        <h1 class="book-page-title">Cách Kết Bạn và Gây Ấn Tượng Tốt</h1>
+
+                        <div class="book-page-content">
+                            <p>Tổng thống Franklin D. Roosevelt được biết đến như một trong những tổng thống được yêu mến nhất trong lịch sử Hoa Kỳ. Điều đáng chú ý là ông có một khả năng đặc biệt trong việc nhớ tên người khác.</p>
+
+                            <p><span class="selectable-text selected-highlight">Khi đi trên các chuyến tàu hỏa, ông không chỉ chào hỏi những quan chức cấp cao mà còn nhớ được tên của những người hầu xe, nhân viên phục vụ và thậm chí cả những người làm việc lặng lẽ nhất trong các ga tàu.</span> Đây chính là bí quyết giúp ông chinh phục được lòng người dân.</p>
+
+                            <p>Trong thế giới kinh doanh, việc nhớ tên cũng có sức mạnh tương tự. Một doanh nhân thành công ở Philadelphia đã chia sẻ rằng ông có thể nhớ tên của hơn ba trăm nhân viên trong cửa hàng của mình.</p>
+
+                            <p><span class="selectable-text">Khi được hỏi về bí quyết, ông ấy nói rằng điều đơn giản nhất chính là coi trọng từng cá nhân. Hãy nhớ rằng tên gọi, với hầu hết mọi người, là âm thanh quan trọng nhất của bất kỳ ngôn ngữ nào.</span></p>
+
+                            <p>Nhớ tên người khác là sự thể hiện lịch sự và tôn trọng đơn giản nhất mà bạn có thể dành cho họ. Khi bạn gặp ai đó lần đầu, hãy cố gắng nhớ tên của họ. Nếu bạn quên, đừng ngại hỏi lại.</p>
+
+                            <p>Việc hỏi lại tên cho thấy bạn thực sự quan tâm đến người đó. Đây là một trong những kỹ năng giao tiếp cơ bản nhất mà bất kỳ ai cũng nên học.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Mini Chat Popup -->
+        <div class="mini-chat-popup visible" id="miniChat">
+            <div class="mini-chat-header">
+                <div class="mini-chat-title">
+                    <div class="mini-chat-icon">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                    </div>
+                    <span class="mini-chat-name">Giải thích đoạn này</span>
+                </div>
+                <button class="mini-chat-close">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="mini-chat-quote">
+                "Khi đi trên các chuyến tàu hỏa, ông không chỉ chào hỏi những quan chức cấp cao mà còn nhớ được tên của những người hầu xe..."
+            </div>
+            <div class="mini-chat-messages">
+                <div class="mini-message user">
+                    <div class="mini-message-bubble">
+                        <div class="mini-message-text">
+                            Đoạn này có ý nghĩa gì trong bối cảnh hiện đại?
+                        </div>
+                    </div>
+                </div>
+                <div class="mini-message assistant">
+                    <div class="mini-message-bubble">
+                        <div class="mini-message-text">
+                            <p>Đoạn này của Carnegie muốn nhấn mạnh rằng sự chú ý đến từng cá nhân, dù là người có địa vị thấp nhất, là cách để xây dựng mối quan hệ bền vững.</p>
+                            <p style="margin-top: 8px;">Trong bối cảnh hiện đại, điều này có nghĩa:</p>
+                            <p>1. <strong>Trong công việc</strong>: Ghi nhớ tên đồng nghiệp, nhân viên tạo văn hóa tôn trọng.</p>
+                            <p>2. <strong>Trong kinh doanh</strong>: Khách hàng cảm thấy được valor khi được gọi tên.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mini-chat-input-area">
+                <div class="mini-chat-input-wrapper">
+                    <input type="text" class="mini-chat-input" placeholder="Hỏi thêm về đoạn này...">
+                    <button class="mini-send-btn">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selection Tooltip -->
+        <div class="selection-tooltip visible" id="selectionTooltip" style="bottom: 280px; right: 32px;">
+            <button class="tooltip-action purple">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                Giải thích
+            </button>
+            <button class="tooltip-action">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+                Copy
+            </button>
+            <button class="tooltip-action">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Ghi chú
+            </button>
+        </div>
+    </div>
+
+    <!-- Audio Player Panel -->
+    <div class="audio-player-panel">
+        <div class="audio-info">
+            <img class="audio-book-cover" src="https://picsum.photos/seed/book1/112/144" alt="Book">
+            <div class="audio-book-info">
+                <div class="audio-book-title">Đắc Nhân Tâm</div>
+                <div class="audio-book-chapter">Chương 7 - Cách Kết Bạn</div>
+            </div>
+        </div>
+
+        <div class="audio-controls">
+            <button class="audio-btn">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M19 20L9 12l10-8v16zM5 19V5"/>
+                </svg>
+            </button>
+            <button class="audio-btn play">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+            </button>
+            <button class="audio-btn">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M5 4l10 8-10 8V4zM19 5v14"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="audio-progress">
+            <span class="audio-time">2:34</span>
+            <div class="audio-progress-bar">
+                <div class="audio-progress-fill"></div>
+            </div>
+            <span class="audio-time">7:12</span>
+        </div>
+
+        <div class="audio-mode-selector">
+            <button class="audio-mode-btn active">Tóm tắt</button>
+            <button class="audio-mode-btn">Toàn bộ</button>
+            <button class="audio-mode-btn">Chương</button>
+            <button class="audio-mode-btn">AI Phân tích</button>
+        </div>
+
+        <div class="speed-control">
+            <button class="speed-btn">0.5x</button>
+            <button class="speed-btn">1x</button>
+            <button class="speed-btn active">1.5x</button>
+            <button class="speed-btn">2x</button>
+        </div>
+
+        <div class="audio-volume">
+            <button class="audio-btn" style="width: 32px; height: 32px;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+                </svg>
+            </button>
+            <div class="volume-slider">
+                <div class="volume-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Close mini chat
+        document.querySelector('.mini-chat-close').addEventListener('click', () => {
+            document.getElementById('miniChat').classList.remove('visible');
+        });
+
+        // Audio mode switching
+        document.querySelectorAll('.audio-mode-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.audio-mode-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Speed control
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

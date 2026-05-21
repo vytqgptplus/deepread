@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepRead - Follow Reading Mode</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #212121;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #323232;
+            --bg-hover: #3d3d3d;
+            --bg-book: #faf9f7;
+            --text-primary: #ececf1;
+            --text-secondary: #8b8b8e;
+            --text-muted: #6e6e73;
+            --text-book: #2c2c2c;
+            --text-book-light: #666666;
+            --accent: #10a37f;
+            --accent-hover: #0d8a6a;
+            --accent-light: rgba(16, 163, 127, 0.15);
+            --highlight: rgba(255, 213, 79, 0.4);
+            --border: #3d3d3d;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            background: #171717;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent), #34d399);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .mode-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--accent);
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .mode-indicator .dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .book-list {
+            padding: 16px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .book-list-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .book-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 4px;
+        }
+
+        .book-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .book-item.active {
+            background: var(--bg-secondary);
+        }
+
+        .book-cover-mini {
+            width: 28px;
+            height: 36px;
+            border-radius: 3px;
+            object-fit: cover;
+        }
+
+        .book-item-title {
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Main Split View */
+        .main-split {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Chat Panel */
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border);
+            min-width: 400px;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .chat-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .exit-mode-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .exit-mode-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+        }
+
+        .message.user .message-bubble {
+            background: var(--bg-secondary);
+            border-radius: 12px 12px 4px 12px;
+            padding: 12px 16px;
+            max-width: 90%;
+        }
+
+        .message.assistant .message-bubble {
+            background: transparent;
+            padding: 0;
+        }
+
+        .message-text {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .citation-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .citation-link:hover {
+            background: rgba(16, 163, 127, 0.25);
+            border-color: var(--accent);
+        }
+
+        .citation-link.active {
+            background: rgba(16, 163, 127, 0.3);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.2);
+        }
+
+        .citation-detail {
+            margin-top: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .citation-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .citation-book-name {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .citation-page {
+            color: var(--text-muted);
+            font-size: 11px;
+            padding: 2px 6px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .citation-quote {
+            color: var(--text-secondary);
+            font-style: italic;
+            line-height: 1.5;
+            padding-left: 12px;
+            border-left: 2px solid var(--accent);
+        }
+
+        /* Input Area */
+        .chat-input-area {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
+
+        .chat-input-wrapper:focus-within {
+            border-color: var(--accent);
+        }
+
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            max-height: 100px;
+        }
+
+        .send-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Book Panel */
+        .book-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-book);
+            min-width: 400px;
+        }
+
+        .book-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: white;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .book-title-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .book-thumb {
+            width: 32px;
+            height: 44px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .book-meta {
+            font-size: 14px;
+        }
+
+        .book-meta-title {
+            font-weight: 600;
+            color: var(--text-book);
+        }
+
+        .book-meta-author {
+            font-size: 12px;
+            color: var(--text-book-light);
+        }
+
+        .book-nav {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nav-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-book-light);
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: #f5f5f5;
+            color: var(--text-book);
+        }
+
+        .page-indicator {
+            font-size: 13px;
+            color: var(--text-book-light);
+            padding: 0 12px;
+        }
+
+        .book-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+            background: white;
+        }
+
+        .book-page {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .book-chapter {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .book-page-title {
+            font-family: 'Merriweather', serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-book);
+            margin-bottom: 24px;
+        }
+
+        .book-page-content {
+            font-family: 'Merriweather', serif;
+            font-size: 15px;
+            line-height: 1.8;
+            color: var(--text-book);
+            text-align: justify;
+        }
+
+        .book-page-content p {
+            margin-bottom: 16px;
+            text-indent: 2em;
+        }
+
+        .book-page-content .highlight {
+            background: var(--highlight);
+            padding: 2px 0;
+            border-radius: 2px;
+        }
+
+        .book-page-content .citation-highlight {
+            background: linear-gradient(to bottom, transparent 60%, var(--highlight) 60%);
+            padding: 2px 0;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .citation-marker {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            background: var(--accent);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 50%;
+            margin-left: 4px;
+            vertical-align: super;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .citation-highlight:hover .citation-marker {
+            opacity: 1;
+        }
+
+        /* Book Footer */
+        .book-footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 12px;
+            background: white;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .zoom-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid #e5e5e5;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-book-light);
+            font-size: 16px;
+        }
+
+        .zoom-level {
+            font-size: 12px;
+            color: var(--text-book-light);
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: #f5f5f5;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        /* Tooltip */
+        .citation-tooltip {
+            position: fixed;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            max-width: 300px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .citation-tooltip.visible {
+            display: block;
+        }
+
+        .tooltip-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tooltip-book {
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .tooltip-page {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .tooltip-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        .tooltip-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">D</div>
+                    DeepRead
+                </div>
+            </div>
+
+            <div class="mode-indicator">
+                <span class="dot"></span>
+                Follow Reading Mode
+            </div>
+
+            <div class="book-list">
+                <div class="book-list-title">Đang đọc</div>
+                <div class="book-item active">
+                    <img class="book-cover-mini" src="https://picsum.photos/seed/book1/56/72" alt="Book">
+                    <span class="book-item-title">Đắc Nhân Tâm</span>
+                </div>
+                <div class="book-item">
+                    <img class="book-cover-mini" src="https://picsum.photos/seed/book2/56/72" alt="Book">
+                    <span class="book-item-title">Nhà Giả Kim</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Split View -->
+        <div class="main-split">
+            <!-- Chat Panel -->
+            <div class="chat-panel">
+                <div class="chat-header">
+                    <span class="chat-title">Đắc Nhân Tâm - AI Chat</span>
+                    <button class="exit-mode-btn">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Thoát
+                    </button>
+                </div>
+
+                <div class="chat-messages">
+                    <div class="message user">
+                        <div class="message-bubble">
+                            <div class="message-text">
+                                Ông Carnegie có đưa ra những ví dụ cụ thể nào về việc nhớ tên người khác trong kinh doanh không?
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message assistant">
+                        <div class="message-bubble">
+                            <div class="message-text">
+                                <p>Có, Carnegie cung cấp nhiều ví dụ thực tế từ giới kinh doanh. Một trong những ví dụ nổi bật nhất:</p>
+
+                                <p style="margin-top: 12px;">
+                                    <span class="citation-link" id="cite-1">📖 Trang 89-90</span>
+                                </p>
+
+                                <div class="citation-detail" id="detail-1">
+                                    <div class="citation-detail-header">
+                                        <span class="citation-book-name">Đắc Nhân Tâm</span>
+                                        <span class="citation-page">Trang 89-90</span>
+                                    </div>
+                                    <p class="citation-quote">"Tổng thống Franklin D. Roosevelt nhớ tên của những người hầu xe trong các chuyến tàu hỏa. Ông ấy luôn chào hỏi họ bằng tên khi gặp lại. Đây là lý do ông được nhiều người yêu mến và ủng hộ."</p>
+                                </div>
+
+                                <p style="margin-top: 12px;">
+                                    <span class="citation-link" id="cite-2">📖 Trang 92</span>
+                                </p>
+
+                                <div class="citation-detail" id="detail-2">
+                                    <div class="citation-detail-header">
+                                        <span class="citation-book-name">Đắc Nhân Tâm</span>
+                                        <span class="citation-page">Trang 92</span>
+                                    </div>
+                                    <p class="citation-quote">"Một doanh nhân thành công ở Philadelphia kể lại rằng ông đã nhớ được tên của hàng trăm nhân viên trong cửa hàng của mình. Việc này giúp ông tạo được lòng trung thành và tăng năng suất làm việc đáng kể."</p>
+                                </div>
+
+                                <p style="margin-top: 16px;">Bạn có muốn tôi điều hướng đến các trang này trong sách không?</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <textarea class="chat-input" placeholder="Đặt câu hỏi về nội dung sách..." rows="1">Kể thêm ví dụ về việc nhớ tên trong cuốn sách</textarea>
+                        <button class="send-btn">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Book Panel -->
+            <div class="book-panel">
+                <div class="book-header">
+                    <div class="book-title-info">
+                        <img class="book-thumb" src="https://picsum.photos/seed/book1/64/88" alt="Book">
+                        <div class="book-meta">
+                            <div class="book-meta-title">Đắc Nhân Tâm</div>
+                            <div class="book-meta-author">Dale Carnegie</div>
+                        </div>
+                    </div>
+                    <div class="book-nav">
+                        <button class="nav-btn">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <span class="page-indicator">Trang 89 / 256</span>
+                        <button class="nav-btn">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="book-content">
+                    <div class="book-page">
+                        <div class="book-chapter">Chương 7</div>
+                        <h1 class="book-page-title">Cách Kết Bạn và Gây Ấn Tượng Tốt</h1>
+
+                        <div class="book-page-content">
+                            <p>Tổng thống Franklin D. Roosevelt được biết đến như một trong những tổng thống được yêu mến nhất trong lịch sử Hoa Kỳ. Điều đáng chú ý là ông có một khả năng đặc biệt trong việc nhớ tên người khác.</p>
+
+                            <p>Khi đi trên các chuyến tàu hỏa, ông không chỉ chào hỏi những quan chức cấp cao mà còn nhớ được tên của những người hầu xe, nhân viên phục vụ và thậm chí cả những người làm việc lặng lẽ nhất trong các ga tàu. <span class="citation-highlight">Đây chính là bí quyết giúp ông chinh phục được lòng người dân.<span class="citation-marker">1</span></span></p>
+
+                            <p>Trong thế giới kinh doanh, việc nhớ tên cũng có sức mạnh tương tự. Một doanh nhân thành công ở Philadelphia đã chia sẻ rằng ông có thể nhớ tên của hơn ba trăm nhân viên trong cửa hàng của mình. <span class="citation-highlight">Khi được hỏi về bí quyết, ông ấy nói rằng điều đơn giản nhất chính là coi trọng từng cá nhân.<span class="citation-marker">2</span></span></p>
+
+                            <p>Hãy nhớ rằng tên gọi, với hầu hết mọi người, là âm thanh quan trọng nhất của bất kỳ ngôn ngữ nào. Nhớ tên người khác là sự thể hiện lịch sự và tôn trọng đơn giản nhất mà bạn có thể dành cho họ.</p>
+
+                            <p>Khi bạn gặp ai đó lần đầu, hãy cố gắng nhớ tên của họ. Nếu bạn quên, đừng ngại hỏi lại. Việc hỏi lại tên cho thấy bạn thực sự quan tâm đến người đó.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="book-footer">
+                    <div class="zoom-controls">
+                        <button class="zoom-btn">A-</button>
+                        <span class="zoom-level">100%</span>
+                        <button class="zoom-btn">A+</button>
+                    </div>
+                    <div class="theme-toggle">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                        </svg>
+                        Chế độ tối
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Citation Tooltip -->
+    <div class="citation-tooltip" id="tooltip">
+        <div class="tooltip-header">
+            <span class="tooltip-book">Đắc Nhân Tâm</span>
+            <span class="tooltip-page">Trang 89</span>
+        </div>
+        <p class="tooltip-text">"Đây chính là bí quyết giúp ông chinh phục được lòng người dân."</p>
+        <p class="tooltip-hint">📍 Click để điều hướng đến vị trí này</p>
+    </div>
+
+    <script>
+        // Demo interaction - citations highlight corresponding text in book
+        document.querySelectorAll('.citation-link').forEach(link => {
+            link.addEventListener('click', function() {
+                // Remove active from all
+                document.querySelectorAll('.citation-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+
+                // Scroll to citation in book
+                const citationNum = this.id.split('-')[1];
+                const highlight = document.querySelector(`.citation-highlight:nth-of-type(${citationNum})`);
+                if (highlight) {
+                    highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
